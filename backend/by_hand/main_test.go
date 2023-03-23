@@ -1,3 +1,7 @@
 package main
 
-func 
+import "testing"
+
+func TestUpToVote(t *testing.T) {
+
+}

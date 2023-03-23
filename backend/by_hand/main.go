@@ -238,7 +238,7 @@ func GetPromptWithLock(sessionID, LastPromptID string) *Prompt {
 		return nil
 	}
 
-	ready := false
+	ready := LastPromptID == ""
 	for _, p := range s.Prompts {
 		if ready {
 			return &p

@@ -153,3 +153,5 @@ The route should be `/session/<session_id>/close`
 ## Final Tweaks
 
 - Moved the handlers into their own files.
+- The longer the prompt got the more context was lost. Needed to instruct the session handling
+

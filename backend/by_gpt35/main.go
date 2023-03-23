@@ -9,6 +9,13 @@ import (
 	"github.com/gorilla/securecookie"
 )
 
+type Session struct {
+	ID           string
+	Participants map[string]Participant
+	Prompts      []Prompt
+	OwnerID      string
+}
+
 const (
 	SessionIDLength = 6
 	TokenLength     = 6
@@ -33,21 +40,30 @@ func main() {
 	http.ListenAndServe(":8080", r)
 }
 
-func getSessionID(r *http.Request) (string, error) {
+func getCookie(r *http.Request) (*http.Cookie, error) {
 	cookie, err := r.Cookie("session_id")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	var sessionID string
-	err = cookieStore.Decode("session_id", cookie.Value, &sessionID)
-	if err != nil {
-		return "", err
-	}
-	return sessionID, nil
+	return cookie, nil
 }
 
-func setSessionID(w http.ResponseWriter, sessionID string) {
-	encoded, err := cookieStore.Encode("session_id", sessionID)
+func getSession(r *http.Request) (Session, error) {
+	cookie, err := getCookie(r)
+	if err != nil {
+		return Session{}, err
+	}
+
+	var session Session
+	err = cookieStore.Decode("session_id", cookie.Value, &session)
+	if err != nil {
+		return Session{}, err
+	}
+	return session, nil
+}
+
+func setSession(w http.ResponseWriter, session Session) {
+	encoded, err := cookieStore.Encode("session_id", session)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

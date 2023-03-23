@@ -9,6 +9,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type Participant struct {
+	ID    string
+	Token string
+}
+
 type CreateSessionRequest struct {
 	ParticipantID string `json:"participant_id"`
 }
@@ -82,14 +87,14 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["session_id"]
 
 	// Read session ID from cookie
-	sessionIDCookie, err := getSessionID(r)
+	session, err := getSession(r)
 	if err != nil {
 		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
 		return
 	}
 
 	// Verify that session ID in cookie matches session ID in URL path
-	if sessionIDCookie != sessionID {
+	if session.ID != sessionID {
 		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
 		return
 	}
@@ -103,16 +108,22 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate session ID for participant
-	participantSessionID := generateRandomString(SessionIDLength)
+
+	token := generateRandomString(TokenLength)
+	session = Session{
+		ID: sessionID,
+		Participants: map[string]Participant{
+			req.ParticipantID: {
+				ID:    req.ParticipantID,
+				Token: token,
+			},
+		},
+	}
 
 	// Create response
 	res := JoinSessionResponse{
-		SessionID: participantSessionID,
-		Token:     generateRandomString(TokenLength),
+		Token: generateRandomString(TokenLength),
 	}
-
-	// Set session ID cookie
-	setSessionID(w, sessionID)
 
 	// Encode response as JSON and write to response
 	jsonBytes, err := json.Marshal(res)
@@ -133,18 +144,30 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get session ID from cookie or generate a new one
-	sessionID, err := getSessionID(r)
-	if err != nil {
-		sessionID = generateRandomString(SessionIDLength)
-	}
-
 	// Generate token
 	token := generateRandomString(TokenLength)
 
+	// Get session ID from cookie or generate a new one
+	session, err := getSession(r)
+	if err != nil {
+		sessionID := generateRandomString(SessionIDLength)
+		session = Session{
+			ID: sessionID,
+			Participants: map[string]Participant{
+				req.ParticipantID: Participant{
+					ID:    req.ParticipantID,
+					Token: token,
+				},
+			},
+		}
+	}
+
+	// write the session to the cookie
+	setSession(w, session)
+
 	// Create response
 	res := JoinSessionResponse{
-		SessionID: sessionID,
+		SessionID: session.ID,
 		Token:     token,
 	}
 

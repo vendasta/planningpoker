@@ -3,9 +3,16 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"sync"
 )
 
 type (
+	Vote struct {
+		ParticipantID string
+		PromptID      string
+		Vote          string
+	}
+
 	Prompt struct {
 		ID    string
 		Text  string
@@ -13,15 +20,20 @@ type (
 	}
 
 	Participant struct {
-		ID string
+		ID    string
+		Token string
 	}
 
 	Session struct {
 		ID           string
 		Participants map[string]Participant
 		Prompts      []Prompt
+		OwnerID      string
 	}
 )
+
+var sessions map[string]Session
+var sessionLock sync.Mutex
 
 func main() {
 	r := mux.NewRouter()
@@ -35,22 +47,6 @@ func main() {
 
 	r.HandleFunc("/vote/submit", VoteSubmitHandler)
 	r.HandleFunc("/vote/{vote_id}/watch", VoteWatchHandler)
-}
-
-//----------------------------------------------
-
-var sessions map[string]Session
-
-func SessionCreateHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func SessionJoinHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func SessionCloseHandler(w http.ResponseWriter, r *http.Request) {
-
 }
 
 //----------------------------------------------

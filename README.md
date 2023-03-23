@@ -43,6 +43,8 @@ HTTP 200 OK
 ```
 HTTP 404 Not Found
 (No open session with that ID was found)
+HTTP 409 Conflict
+(Another participant with that ID is already in the session)
 
 # Wait for Prompt
 Wait for Prompt <url>

@@ -137,13 +137,19 @@ curl 10.50.11.231:9000/session/lazy%20rat/prompt/03727afc-6c28-470a-8ed9-2eb7878
 
 # Watch Vote 
 URL `/session/<session_id>/prompt/<prompt_id>/watch`
-```json
-{
-}
-```
-```json
-{
 
+```json
+{
+ "votes": [
+  {
+   "participant_id": "Dale Hopkins",
+   "vote": "1"
+  },
+  {
+   "participant_id": "Jesse Redl",
+   "vote": "3"
+  }
+ ]
 }
 ```
 Headers

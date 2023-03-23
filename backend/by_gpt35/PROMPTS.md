@@ -154,4 +154,4 @@ The route should be `/session/<session_id>/close`
 
 - Moved the handlers into their own files.
 - The longer the prompt got the more context was lost. Needed to instruct the session handling
-
+- The session handling and auth got a bit messy as the generation got longer. Fixed by hand

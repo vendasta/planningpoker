@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
+	"regexp"
 	"sync"
 )
 
@@ -30,34 +32,53 @@ type (
 		Prompts      []Prompt
 		OwnerID      string
 	}
+
+	PromptCreateRequest struct {
+		Text string `json:"text"`
+	}
+
+	NewPromptMessage struct {
+		PromptID  string `json:"prompt_id"`
+		SessionID string `json:"session_id"`
+		Text      string `json:"text"`
+	}
+
+	PromptCreateResponse struct {
+		PromptID string `json:"prompt_id"`
+	}
+
+	PromptWaitRequest struct {
+		LastPromptID string `json:"last_prompt_id"`
+	}
+
+	PromptWaitResponse struct {
+		PromptID string `json:"prompt_id"`
+		Text     string `json:"text"`
+	}
 )
 
 var sessions map[string]Session
 var sessionLock sync.Mutex
 
+var prompts chan NewPromptMessage
+
 func main() {
+	prompts = make(chan NewPromptMessage)
+	go PromptHandler(prompts)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/session/create", SessionCreateHandler)
 	r.HandleFunc("/session/{session_id}/join", SessionJoinHandler)
 	r.HandleFunc("/session/{session_id}/close", SessionCloseHandler)
 
-	r.HandleFunc("/prompt/create", PromptCreateHandler)
-	r.HandleFunc("/prompt/{prompt_id}/wait", PromptWaitHandler)
+	r.HandleFunc("/session/{session_id}/prompt/create", PromptCreateHandler)
+	r.HandleFunc("/session/{session_id}/prompt/wait", PromptWaitHandler)
 
-	r.HandleFunc("/vote/submit", VoteSubmitHandler)
-	r.HandleFunc("/vote/{vote_id}/watch", VoteWatchHandler)
+	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote/submit", VoteSubmitHandler)
+	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote/{vote_id}/watch", VoteWatchHandler)
 }
 
 //----------------------------------------------
-
-func PromptCreateHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func PromptWaitHandler(w http.ResponseWriter, r *http.Request) {
-
-}
 
 //----------------------------------------------
 
@@ -70,3 +91,35 @@ func VoteWatchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 //----------------------------------------------
+
+func GetToken(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("authorization")
+	regex := regexp.MustCompile(`^Bearer (.*)$`)
+	matches := regex.FindStringSubmatch(authHeader)
+	if len(matches) != 2 {
+		return "", fmt.Errorf("Invalid authorization header: %v", authHeader)
+	}
+	return matches[1], nil
+}
+
+func GetParticipantID(s Session, token string) string {
+	for _, p := range s.Participants {
+		if p.Token == token {
+			return p.ID
+		}
+	}
+
+	return ""
+}
+
+func GetParticipantIDWithLock(sid string, token string) string {
+	sessionLock.Lock()
+	defer sessionLock.Unlock()
+
+	s, ok := sessions[sid]
+	if !ok {
+		return ""
+	}
+
+	return GetParticipantID(s, token)
+}

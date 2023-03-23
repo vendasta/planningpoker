@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"net/http"
-	"regexp"
 )
 
 type (
@@ -20,15 +20,10 @@ type (
 
 	SessionJoinRequest struct {
 		ParticipantID string `json:"participant_id"`
-		SessionID     string `json:"session_id"`
 	}
 
 	SessionJoinResponse struct {
 		Token string `json:"token"`
-	}
-
-	SessionCloseRequest struct {
-		SessionID string `json:"session_id"`
 	}
 )
 
@@ -76,6 +71,7 @@ func SessionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		fmt.Printf("Error encoding response: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 }
@@ -89,12 +85,15 @@ func SessionJoinHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	vars := mux.Vars(r)
+	sessionID := vars["session_id"]
+
 	sessionLock.Lock()
 	defer sessionLock.Unlock()
 
-	s, ok := sessions[req.SessionID]
+	s, ok := sessions[sessionID]
 	if !ok {
-		fmt.Printf("Attempted to join non-existent session: %v", req.SessionID)
+		fmt.Printf("Attempted to join non-existent session: %v", sessionID)
 		http.Error(w, "invalid session", http.StatusNotFound)
 		return
 	}
@@ -120,57 +119,46 @@ func SessionJoinHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		fmt.Printf("Error encoding response: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+
 }
 
 func SessionCloseHandler(w http.ResponseWriter, r *http.Request) {
-	var req SessionCloseRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	reqToken, err := GetToken(r)
 	if err != nil {
-		fmt.Printf("Error decoding request: %v", err)
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		fmt.Printf("Error getting token: %v", err)
+		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	authHeader := r.Header.Get("authorization")
-	regex := regexp.MustCompile(`^Bearer (.*)$`)
-	matches := regex.FindStringSubmatch(authHeader)
-	if len(matches) != 2 {
-		fmt.Printf("Invalid authorization header: %v", authHeader)
-		http.Error(w, "invalid authorization header", http.StatusUnauthorized)
-		return
-	}
-	reqToken := matches[1]
+	vars := mux.Vars(r)
+	sessionID := vars["session_id"]
 
 	sessionLock.Lock()
 	defer sessionLock.Unlock()
 
-	s, ok := sessions[req.SessionID]
+	s, ok := sessions[sessionID]
 	if !ok {
-		fmt.Printf("Attempted to close non-existent session: %v", req.SessionID)
+		fmt.Printf("Attempted to close non-existent session: %v", sessionID)
 		http.Error(w, "invalid session", http.StatusNotFound)
 		return
 	}
 
-	var p *Participant
-	for _, v := range s.Participants {
-		if v.Token == reqToken {
-			p = &v
-		}
-	}
-	if p == nil {
+	participantID := GetParticipantID(s, reqToken)
+	if participantID == "" {
 		fmt.Printf("Attempted to close session with invalid token: %v", reqToken)
 		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	if p.ID != s.OwnerID {
+	if participantID != s.OwnerID {
 		fmt.Printf("Attempted to close session with non-owner token: %v", reqToken)
 		http.Error(w, "only the session creator can close it", http.StatusUnauthorized)
 		return
 	}
 
-	delete(sessions, req.SessionID)
+	delete(sessions, sessionID)
 	w.WriteHeader(http.StatusNoContent)
 }

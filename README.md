@@ -5,7 +5,7 @@ Available Votes
 `0`, `1`, `2`, `3`, `5`, `8`, `13`, `20`, `40`, `100`, `?`, `☕️`
 
 # Create Session
-Create Session <url>
+Create Session /session/create
 ```json
 { 'participant_id': 'Dale Hopkins'}
 ```
@@ -23,11 +23,10 @@ HTTP 201 Created
 ```
 
 # Join Session
-Join Session <url>
+Join Session /session/<session_id>/join
 ```json
 {
     'participant_id': 'Jesse Redl',
-    'session_id': '1234'
 }
 ```
 Headers
@@ -47,10 +46,9 @@ HTTP 409 Conflict
 (Another participant with that ID is already in the session)
 
 # Wait for Prompt
-Wait for Prompt <url>
+Wait for Prompt /session/<session_id>/prompt/wait
 ```json
 {
-  'session_id': '1234',
   'last_prompt_id': 'abc'
 }
 ```
@@ -69,7 +67,7 @@ HTTP 404 Not Found
 (Session was not found or was closed)
 
 # New Prompt
-New Prompt <url>
+New Prompt /session/<session_id>/prompt/create
 ```json
 {
   'prompt': 'Add support for OpenID Connect to the Application\'s Authorization flow',
@@ -88,7 +86,7 @@ HTTP 201 Created
 }
 
 # Vote
-New Vote <url>
+New Vote /session/<session_id>/prompt/<prompt_id>/vote
 ```json
 {
   'prompt_id': 'abc',
@@ -100,10 +98,14 @@ Headers
 - accept = 'application/json'
 - authorization = 'bearer <token>'
 
-# Watch Vote <url>
+# Watch Vote /session/<session_id>/prompt/<prompt_id>/watch
 ```json
 {
-  'prompt_id': 'abc',
+}
+```
+```json
+{
+
 }
 ```
 Headers
@@ -112,10 +114,9 @@ Headers
 - authorization = 'bearer <token>'
 
 # Close Session
-Close Session <url>
+Close Session /session/<session_id>/close
 ```json
 {
-  'session_id': '1234',
 }
 ```
 Headers
@@ -125,4 +126,8 @@ Headers
 
 Return
 HTTP 204 No Content
-
+(the session was closed)
+HTTP 404 Not Found
+(the session is not currently open)
+HTTP 401 Unauthorized
+(you are not the owner of the session)

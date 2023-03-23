@@ -32,29 +32,6 @@ type (
 		Prompts      []Prompt
 		OwnerID      string
 	}
-
-	PromptCreateRequest struct {
-		Text string `json:"text"`
-	}
-
-	NewPromptMessage struct {
-		PromptID  string `json:"prompt_id"`
-		SessionID string `json:"session_id"`
-		Text      string `json:"text"`
-	}
-
-	PromptCreateResponse struct {
-		PromptID string `json:"prompt_id"`
-	}
-
-	PromptWaitRequest struct {
-		LastPromptID string `json:"last_prompt_id"`
-	}
-
-	PromptWaitResponse struct {
-		PromptID string `json:"prompt_id"`
-		Text     string `json:"text"`
-	}
 )
 
 var sessions map[string]Session
@@ -122,4 +99,27 @@ func GetParticipantIDWithLock(sid string, token string) string {
 	}
 
 	return GetParticipantID(s, token)
+}
+
+func GetPromptWithLock(sessionID, LastPromptID string) *Prompt {
+	sessionLock.Lock()
+	defer sessionLock.Unlock()
+
+	s, ok := sessions[sessionID]
+	if !ok {
+		return nil
+	}
+
+	ready := false
+	for _, p := range s.Prompts {
+		if ready {
+			return &p
+		}
+		if p.ID == LastPromptID {
+			ready = true
+		}
+	}
+
+	return nil
+
 }

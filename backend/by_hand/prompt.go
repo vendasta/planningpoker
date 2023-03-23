@@ -10,6 +10,31 @@ import (
 	"time"
 )
 
+type (
+	NewPromptMessage struct {
+		PromptID  string `json:"prompt_id"`
+		SessionID string `json:"session_id"`
+		Text      string `json:"text"`
+	}
+
+	PromptCreateRequest struct {
+		Text string `json:"text"`
+	}
+
+	PromptCreateResponse struct {
+		PromptID string `json:"prompt_id"`
+	}
+
+	PromptWaitRequest struct {
+		LastPromptID string `json:"last_prompt_id"`
+	}
+
+	PromptWaitResponse struct {
+		PromptID string `json:"prompt_id"`
+		Text     string `json:"text"`
+	}
+)
+
 func PromptHandler(ch chan NewPromptMessage) {
 	for {
 		p := <-ch
@@ -86,6 +111,14 @@ func PromptCreateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PromptWaitHandler(w http.ResponseWriter, r *http.Request) {
+	var req PromptWaitRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		fmt.Printf("Error creating prompt: %v\n", err)
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
 	reqToken, err := GetToken(r)
 	if err != nil {
 		fmt.Printf("Error getting token: %v\n", err)
@@ -100,6 +133,23 @@ func PromptWaitHandler(w http.ResponseWriter, r *http.Request) {
 	if participantID == "" {
 		fmt.Printf("Error getting participant: %v\n", err)
 		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	availablePrompt := GetPromptWithLock(sessionID, req.LastPromptID)
+	if availablePrompt != nil {
+		pwr := &PromptWaitResponse{
+			PromptID: availablePrompt.ID,
+			Text:     availablePrompt.Text,
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(pwr)
+		if err != nil {
+			fmt.Printf("Error encoding response: %v\n", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 

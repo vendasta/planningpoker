@@ -109,7 +109,7 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 
 	// Create response
 	res := JoinSessionResponse{
-		Token: generateRandomString(TokenLength),
+		Token: token,
 	}
 
 	// Encode response as JSON and write to response

@@ -35,7 +35,7 @@ func main() {
 	r.HandleFunc("/session/{session_id}/prompt/create", createPrompt).Methods("POST")
 	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote", vote).Methods("POST")
 	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/watch", watchVotes).Methods("POST")
-	r.HandleFunc("/session/{session_id}/close`", closeSession).Methods("POST")
+	r.HandleFunc("/session/{session_id}/close", closeSession).Methods("POST")
 
 	http.ListenAndServe(":8080", r)
 }

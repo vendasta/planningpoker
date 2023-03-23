@@ -28,8 +28,7 @@ type JoinSessionRequest struct {
 }
 
 type JoinSessionResponse struct {
-	SessionID string `json:"session_id"`
-	Token     string `json:"token"`
+	Token string `json:"token"`
 }
 
 func closeSession(w http.ResponseWriter, r *http.Request) {

@@ -31,7 +31,7 @@ func SessionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var scr SessionCreateRequest
 	err := json.NewDecoder(r.Body).Decode(&scr)
 	if err != nil {
-		fmt.Printf("Error decoding request: %v", err)
+		fmt.Printf("Error decoding request: %v\n", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
@@ -70,7 +70,7 @@ func SessionCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		fmt.Printf("Error encoding response: %v", err)
+		fmt.Printf("Error encoding response: %v\n", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -80,7 +80,7 @@ func SessionJoinHandler(w http.ResponseWriter, r *http.Request) {
 	var req SessionJoinRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		fmt.Printf("Error decoding request: %v", err)
+		fmt.Printf("Error decoding request: %v\n", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
@@ -93,14 +93,14 @@ func SessionJoinHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, ok := sessions[sessionID]
 	if !ok {
-		fmt.Printf("Attempted to join non-existent session: %v", sessionID)
+		fmt.Printf("Attempted to join non-existent session: %v\n", sessionID)
 		http.Error(w, "invalid session", http.StatusNotFound)
 		return
 	}
 
 	_, ok = s.Participants[req.ParticipantID]
 	if ok {
-		fmt.Printf("Attempted to join session with duplicate participant ID: %v", req.ParticipantID)
+		fmt.Printf("Attempted to join session with duplicate participant ID: %v\n", req.ParticipantID)
 		http.Error(w, "duplicate participant ID", http.StatusConflict)
 		return
 	}
@@ -118,7 +118,7 @@ func SessionJoinHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		fmt.Printf("Error encoding response: %v", err)
+		fmt.Printf("Error encoding response: %v\n", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -128,7 +128,7 @@ func SessionJoinHandler(w http.ResponseWriter, r *http.Request) {
 func SessionCloseHandler(w http.ResponseWriter, r *http.Request) {
 	reqToken, err := GetToken(r)
 	if err != nil {
-		fmt.Printf("Error getting token: %v", err)
+		fmt.Printf("Error getting token: %v\n", err)
 		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
@@ -141,20 +141,20 @@ func SessionCloseHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, ok := sessions[sessionID]
 	if !ok {
-		fmt.Printf("Attempted to close non-existent session: %v", sessionID)
+		fmt.Printf("Attempted to close non-existent session: %v\n", sessionID)
 		http.Error(w, "invalid session", http.StatusNotFound)
 		return
 	}
 
 	participantID := GetParticipantID(s, reqToken)
 	if participantID == "" {
-		fmt.Printf("Attempted to close session with invalid token: %v", reqToken)
+		fmt.Printf("Attempted to close session with invalid token: %v\n", reqToken)
 		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
 
 	if participantID != s.OwnerID {
-		fmt.Printf("Attempted to close session with non-owner token: %v", reqToken)
+		fmt.Printf("Attempted to close session with non-owner token: %v\n", reqToken)
 		http.Error(w, "only the session creator can close it", http.StatusUnauthorized)
 		return
 	}

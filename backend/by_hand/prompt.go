@@ -90,6 +90,7 @@ func PromptCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.Prompts = append(s.Prompts, newPrompt)
+	sessions[sessionID] = s
 	prompts <- NewPromptMessage{
 		PromptID:  newPrompt.ID,
 		SessionID: s.ID,

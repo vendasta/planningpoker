@@ -38,8 +38,12 @@ type (
 		Vote string `json:"vote"`
 	}
 
+	VoteGetResponse struct {
+		Votes []Vote `json:"vote"`
+	}
+
 	VoteWatchResponse struct {
-		Votes []string `json:"vote"`
+		Votes []Vote `json:"vote"`
 	}
 )
 
@@ -49,6 +53,7 @@ var sessionLock sync.Mutex
 var prompts chan NewPromptMessage
 
 func main() {
+	sessions = make(map[string]Session)
 	prompts = make(chan NewPromptMessage)
 	go PromptHandler(prompts)
 	r := mux.NewRouter()
@@ -63,6 +68,9 @@ func main() {
 	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote/submit", VoteSubmitHandler)
 	r.HandleFunc("/sesssion/{session_id}/prompt/{prompt_id}/vote/{vote_id}/get", VoteGetHandler)
 	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote/{vote_id}/watch", VoteWatchHandler)
+
+	fmt.Printf("serving on port 9000\n")
+	http.ListenAndServe(":9000", r)
 }
 
 //----------------------------------------------
@@ -75,6 +83,14 @@ func VoteSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Printf("Error submitting vote: %v\n", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	switch req.Vote {
+	case "0", "1/2", "1", "2", "3", "5", "8", "13", "20", "40", "100", "?", "☕️":
+	default:
+		fmt.Printf("Invalid vote: %v\n", req.Vote)
+		http.Error(w, "invalid vote", http.StatusBadRequest)
 		return
 	}
 
@@ -128,7 +144,51 @@ func VoteSubmitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func VoteGetHandler(w http.ResponseWriter, r *http.Request) {
-	
+	reqToken, err := GetToken(r)
+	if err != nil {
+		fmt.Printf("Error getting token: %v\n", err)
+		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	vars := mux.Vars(r)
+	sessionID := vars["session_id"]
+	promptID := vars["prompt_id"]
+
+	sessionLock.Lock()
+	defer sessionLock.Unlock()
+
+	s, ok := sessions[sessionID]
+	if !ok {
+		fmt.Printf("Session not found: %v\n", sessionID)
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+
+	participantID := GetParticipantID(s, reqToken)
+	if participantID == "" {
+		fmt.Printf("Participant not found for token: %v\n", reqToken)
+		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	for _, prompt := range s.Prompts {
+		if prompt.ID == promptID {
+			response := VoteGetResponse{Votes: prompt.Votes}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			err = json.NewEncoder(w).Encode(response)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Printf("Error encoding response: %v\n", err)
+				return
+			}
+			return
+		}
+	}
+
+	fmt.Printf("Prompt not found: %v\n", promptID)
+	http.Error(w, "prompt not found", http.StatusNotFound)
 }
 
 func VoteWatchHandler(w http.ResponseWriter, r *http.Request) {

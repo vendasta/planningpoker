@@ -101,10 +101,8 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 		Token: token,
 	}
 
-	session = Session{
-		ID:           sessionID,
-		Participants: participants,
-	}
+	// update the participants in the session
+	session.Participants = participants
 
 	// update the session in the cookie
 	setSession(w, session)

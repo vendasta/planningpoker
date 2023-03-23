@@ -53,9 +53,23 @@ var sessionLock sync.Mutex
 var prompts chan NewPromptMessage
 
 func main() {
+	initialize()
+
+	r := CreateHandler()
+
+	fmt.Printf("serving on port 9000\n")
+	http.ListenAndServe(":9000", r)
+}
+
+//----------------------------------------------
+
+func initialize() {
 	sessions = make(map[string]Session)
 	prompts = make(chan NewPromptMessage)
 	go PromptHandler(prompts)
+}
+
+func CreateHandler() http.Handler {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/session/create", SessionCreateHandler)
@@ -66,14 +80,10 @@ func main() {
 	r.HandleFunc("/session/{session_id}/prompt/wait", PromptWaitHandler)
 
 	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote/submit", VoteSubmitHandler)
-	r.HandleFunc("/sesssion/{session_id}/prompt/{prompt_id}/vote/{vote_id}/get", VoteGetHandler)
-	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote/{vote_id}/watch", VoteWatchHandler)
-
-	fmt.Printf("serving on port 9000\n")
-	http.ListenAndServe(":9000", r)
+	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote", VoteGetHandler)
+	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote/watch", VoteWatchHandler)
+	return r
 }
-
-//----------------------------------------------
 
 //----------------------------------------------
 
@@ -123,14 +133,27 @@ func VoteSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	voted := false
-	for _, prompt := range s.Prompts {
+	for k, prompt := range s.Prompts {
 		if prompt.ID == promptID {
-			prompt.Votes = append(prompt.Votes, Vote{
-				ParticipantID: participantID,
-				PromptID:      promptID,
-				Vote:          req.Vote,
-			})
+			skip := false
+			for k, vote := range prompt.Votes {
+				if vote.ParticipantID == participantID {
+					vote.Vote = req.Vote
+					prompt.Votes[k] = vote
+					skip = true
+					break
+				}
+			}
+			if !skip {
+				prompt.Votes = append(prompt.Votes, Vote{
+					ParticipantID: participantID,
+					PromptID:      promptID,
+					Vote:          req.Vote,
+				})
+			}
+			s.Prompts[k] = prompt
 			voted = true
+			break
 		}
 	}
 

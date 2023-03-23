@@ -46,16 +46,8 @@ func closeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get the actual cookie
-	cookie, err := getCookie(r)
-	if err != nil {
-		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
-		return
-	}
-
-	// Delete session ID cookie
-	cookie.MaxAge = -1
-	http.SetCookie(w, cookie)
+	cookieStore.MaxAge(-1)
+	setSession(w, session)
 
 	// Return response
 	res := struct{}{}

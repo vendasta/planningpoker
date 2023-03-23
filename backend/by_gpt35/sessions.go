@@ -151,9 +151,10 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sessionID := generateRandomString(SessionIDLength)
 		session = Session{
-			ID: sessionID,
+			OwnerID: token,
+			ID:      sessionID,
 			Participants: map[string]Participant{
-				req.ParticipantID: Participant{
+				req.ParticipantID: {
 					ID:    req.ParticipantID,
 					Token: token,
 				},
@@ -165,7 +166,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	setSession(w, session)
 
 	// Create response
-	res := JoinSessionResponse{
+	res := CreateSessionResponse{
 		SessionID: session.ID,
 		Token:     token,
 	}

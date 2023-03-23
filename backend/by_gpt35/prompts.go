@@ -33,24 +33,31 @@ type CreatePromptResponse struct {
 }
 
 func createPrompt(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("token")
+	if token == "" {
+		http.Error(w, "token not found", http.StatusUnauthorized)
+		return
+	}
+
 	// Parse session ID from URL path
 	sessionID := mux.Vars(r)["session_id"]
 
-	// Get session ID from cookie
-	sessionIDCookie, err := r.Cookie("session_id")
+	// Read session ID from cookie
+	session, err := getSession(r)
 	if err != nil {
 		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
 		return
 	}
-	var cookieSessionID string
-	if err = cookieStore.Decode("session_id", sessionIDCookie.Value, &cookieSessionID); err != nil {
-		http.Error(w, "invalid session ID cookie", http.StatusBadRequest)
+
+	// Verify that session ID in cookie matches session ID in URL path
+	if session.ID != sessionID {
+		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
 		return
 	}
 
-	// Verify that session ID in cookie matches session ID in URL path
-	if cookieSessionID != sessionID {
-		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
+	// Verify that token matches session owner ID
+	if token != session.OwnerID {
+		http.Error(w, "token does not match session owner ID", http.StatusUnauthorized)
 		return
 	}
 
@@ -108,20 +115,15 @@ func promptWait(w http.ResponseWriter, r *http.Request) {
 	// Parse session ID from URL path
 	sessionID := mux.Vars(r)["session_id"]
 
-	// Get session ID from cookie
-	sessionIDCookie, err := r.Cookie("session_id")
+	// Read session ID from cookie
+	session, err := getSession(r)
 	if err != nil {
 		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
 		return
 	}
-	var cookieSessionID string
-	if err = cookieStore.Decode("session_id", sessionIDCookie.Value, &cookieSessionID); err != nil {
-		http.Error(w, "invalid session ID cookie", http.StatusBadRequest)
-		return
-	}
 
 	// Verify that session ID in cookie matches session ID in URL path
-	if cookieSessionID != sessionID {
+	if session.ID != sessionID {
 		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
 		return
 	}
@@ -147,7 +149,23 @@ func promptWait(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(scanner.Bytes(), &prompt); err != nil {
 			continue // skip invalid prompts
 		}
-		if prompt.SessionID == sessionID && prompt.PromptID == req.LastPromptID {
+		if prompt.SessionID == sessionID {
+			if req.LastPromptID == "" {
+				// Return first prompt
+				res := PromptWaitResponse{
+					PromptID: prompt.PromptID,
+					Prompt:   prompt.Prompt,
+				}
+				jsonBytes, err := json.Marshal(res)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+				return
+			}
+
 			// Return next prompt
 			for scanner.Scan() {
 				var nextPrompt Prompt

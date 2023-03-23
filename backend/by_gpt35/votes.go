@@ -30,20 +30,15 @@ func watchVotes(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["session_id"]
 	promptID := mux.Vars(r)["prompt_id"]
 
-	// Get session ID from cookie
-	sessionIDCookie, err := r.Cookie("session_id")
+	// Read session ID from cookie
+	session, err := getSession(r)
 	if err != nil {
 		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
 		return
 	}
-	var cookieSessionID string
-	if err = cookieStore.Decode("session_id", sessionIDCookie.Value, &cookieSessionID); err != nil {
-		http.Error(w, "invalid session ID cookie", http.StatusBadRequest)
-		return
-	}
 
 	// Verify that session ID in cookie matches session ID in URL path
-	if cookieSessionID != sessionID {
+	if session.ID != sessionID {
 		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
 		return
 	}
@@ -87,37 +82,27 @@ func watchVotes(w http.ResponseWriter, r *http.Request) {
 }
 
 func vote(w http.ResponseWriter, r *http.Request) {
+
+	token := r.Header.Get("token")
+	if token == "" {
+		http.Error(w, "token not found", http.StatusUnauthorized)
+		return
+	}
+
 	// Parse session and prompt IDs from URL path
 	sessionID := mux.Vars(r)["session_id"]
 	promptID := mux.Vars(r)["prompt_id"]
 
-	// Get session ID from cookie
-	sessionIDCookie, err := r.Cookie("session_id")
+	// Read session ID from cookie
+	session, err := getSession(r)
 	if err != nil {
 		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
 		return
 	}
-	var cookieSessionID string
-	if err = cookieStore.Decode("session_id", sessionIDCookie.Value, &cookieSessionID); err != nil {
-		http.Error(w, "invalid session ID cookie", http.StatusBadRequest)
-		return
-	}
 
 	// Verify that session ID in cookie matches session ID in URL path
-	if cookieSessionID != sessionID {
+	if session.ID != sessionID {
 		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
-		return
-	}
-
-	// Parse voter ID from cookie
-	voterIDCookie, err := r.Cookie("voter_id")
-	if err != nil {
-		http.Error(w, "voter ID cookie not found", http.StatusBadRequest)
-		return
-	}
-	var voterID string
-	if err = cookieStore.Decode("voter_id", voterIDCookie.Value, &voterID); err != nil {
-		http.Error(w, "invalid voter ID cookie", http.StatusBadRequest)
 		return
 	}
 
@@ -141,6 +126,15 @@ func vote(w http.ResponseWriter, r *http.Request) {
 	if !validVote {
 		http.Error(w, "invalid vote value", http.StatusBadRequest)
 		return
+	}
+
+	// Get voter ID from token
+	var voterID string
+	for _, participant := range session.Participants {
+		if participant.Token == token {
+			voterID = participant.ID
+			break
+		}
 	}
 
 	// Record vote in file

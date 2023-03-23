@@ -137,6 +137,11 @@ func vote(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if voterID == "" {
+		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+
 	// Record vote in file
 	vote := Vote{
 		SessionID: sessionID,

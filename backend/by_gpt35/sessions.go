@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 )
@@ -35,40 +33,29 @@ func closeSession(w http.ResponseWriter, r *http.Request) {
 	// Parse session ID from URL path
 	sessionID := mux.Vars(r)["session_id"]
 
-	// Get session ID from cookie
-	sessionIDCookie, err := r.Cookie("session_id")
+	// Read session ID from cookie
+	session, err := getSession(r)
 	if err != nil {
 		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
 		return
 	}
-	var cookieSessionID string
-	if err = cookieStore.Decode("session_id", sessionIDCookie.Value, &cookieSessionID); err != nil {
-		http.Error(w, "invalid session ID cookie", http.StatusBadRequest)
-		return
-	}
 
 	// Verify that session ID in cookie matches session ID in URL path
-	if cookieSessionID != sessionID {
+	if session.ID != sessionID {
 		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
 		return
 	}
 
-	// Delete session ID cookie
-	sessionIDCookie.MaxAge = -1
-	http.SetCookie(w, sessionIDCookie)
-
-	// Delete voter ID cookie
-	voterIDCookie, err := r.Cookie("voter_id")
-	if err == nil {
-		voterIDCookie.MaxAge = -1
-		http.SetCookie(w, voterIDCookie)
+	// get the actual cookie
+	cookie, err := getCookie(r)
+	if err != nil {
+		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
+		return
 	}
 
-	// Delete prompt and vote files for this session
-	promptFilepath := fmt.Sprintf("prompts-%s.json", sessionID)
-	voteFilepath := fmt.Sprintf("votes-%s.json", sessionID)
-	os.Remove(promptFilepath)
-	os.Remove(voteFilepath)
+	// Delete session ID cookie
+	cookie.MaxAge = -1
+	http.SetCookie(w, cookie)
 
 	// Return response
 	res := struct{}{}
@@ -107,17 +94,20 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate session ID for participant
-
 	token := generateRandomString(TokenLength)
-	session = Session{
-		ID: sessionID,
-		Participants: map[string]Participant{
-			req.ParticipantID: {
-				ID:    req.ParticipantID,
-				Token: token,
-			},
-		},
+	participants := session.Participants
+	participants[req.ParticipantID] = Participant{
+		ID:    req.ParticipantID,
+		Token: token,
 	}
+
+	session = Session{
+		ID:           sessionID,
+		Participants: participants,
+	}
+
+	// update the session in the cookie
+	setSession(w, session)
 
 	// Create response
 	res := JoinSessionResponse{

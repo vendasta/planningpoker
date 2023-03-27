@@ -1,7 +1,32 @@
-# planningpoker
-Planning Poker
+# Planning Poker
 
-Available Votes
+Planning Poker is a technique used in agile software development to estimate the effort required to complete a task or a project. It involves a team of people who collectively estimate the amount of work required for a given task or project.
+
+Here's how Planning Poker works:
+
+- A facilitator presents the task or project to the team.
+- Each team member is given a set of cards, usually numbered from 0 to 100 or higher.
+- The team member who is most familiar with the task or project provides a brief description of what needs to be done.
+- Each team member privately selects a card from their set of cards to represent the effort required to complete the task. They should not share their card with the rest of the team.
+- When everyone has made their selection, all the cards are revealed simultaneously.
+- The team members then discuss the reasons behind their estimates and work to come to a consensus estimate.
+- If there is a large discrepancy in the estimates, the team discusses the reasons behind the discrepancy and may choose to re-estimate the task or project.
+- The process is repeated until the team agrees on a final estimate.
+
+Planning Poker is a valuable tool for agile teams because it encourages collaboration and discussion, and it helps to eliminate bias in the estimation process. It also ensures that all team members have a say in the estimation process, which leads to more accurate estimates.
+
+# Your Task
+
+Given the following API's your task is to build a frontend for the planning poker session. Feel free to work in teams and use any language of your choice! Note, that you should feel comfortable using tools like Chat GPT!
+
+
+# Example Prompt
+
+
+
+# Available Votes
+The following votes will be used within the planning session game. 
+
 `0`, `1`, `2`, `3`, `5`, `8`, `13`, `20`, `40`, `100`, `?`, `☕️`
 
 # Create Session

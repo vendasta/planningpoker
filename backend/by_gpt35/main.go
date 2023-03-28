@@ -47,7 +47,7 @@ func main() {
 }
 
 func getCookie(r *http.Request) (*http.Cookie, error) {
-	cookie, err := r.Cookie("session_id")
+	cookie, err := r.Cookie("planning_poker_session_id")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func getSession(r *http.Request) (Session, error) {
 	}
 
 	var session Session
-	err = cookieStore.Decode("session_id", cookie.Value, &session)
+	err = cookieStore.Decode("planning_poker_session_id", cookie.Value, &session)
 	if err != nil {
 		return Session{}, err
 	}
@@ -69,13 +69,13 @@ func getSession(r *http.Request) (Session, error) {
 }
 
 func setSession(w http.ResponseWriter, session Session) {
-	encoded, err := cookieStore.Encode("session_id", session)
+	encoded, err := cookieStore.Encode("planning_poker_session_id", session)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	cookie := &http.Cookie{
-		Name:  "session_id",
+		Name:  "planning_poker_session_id",
 		Value: encoded,
 		Path:  "/",
 	}

@@ -115,6 +115,11 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func createSession(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method == http.MethodOptions {
+		return
+	}
+
 	// Parse request body
 	var req CreateSessionRequest
 	err := json.NewDecoder(r.Body).Decode(&req)

@@ -29,13 +29,17 @@ var (
 
 func main() {
 	r := mux.NewRouter()
-	r.HandleFunc("/create_session", createSession).Methods("POST")
-	r.HandleFunc("/session/{session_id}/join", joinSession).Methods("POST")
-	r.HandleFunc("/session/{session_id}/prompt/wait", promptWait).Methods("POST")
-	r.HandleFunc("/session/{session_id}/prompt/create", createPrompt).Methods("POST")
-	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote", vote).Methods("POST")
-	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/watch", watchVotes).Methods("POST")
-	r.HandleFunc("/session/{session_id}/close", closeSession).Methods("POST")
+
+	r.HandleFunc("/session/create", createSession).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/session/{session_id}/join", joinSession).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/session/{session_id}/prompt/wait", promptWait).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/session/{session_id}/prompt/create", createPrompt).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote", vote).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/watch", watchVotes).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/session/{session_id}/close", closeSession).Methods(http.MethodPost, http.MethodOptions)
+
+	// Allow CORS for all routes
+	r.Use(mux.CORSMethodMiddleware(r))
 
 	http.ListenAndServe(":8080", r)
 }

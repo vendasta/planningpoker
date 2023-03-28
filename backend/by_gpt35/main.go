@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -86,4 +88,18 @@ func generateRandomString(length int) string {
 		b[i] = Charset[seededRand.Intn(len(Charset))]
 	}
 	return string(b)
+}
+
+// getBearerTokenFromHTTP extracts the bearer token out of the authorization header
+func getBearerTokenFromHTTP(r *http.Request) (string, error) {
+	auth := r.Header.Get("authorization")
+	if auth == "" {
+		return "", fmt.Errorf("no authorization header")
+	}
+
+	pieces := strings.Split(auth, " ")
+	if len(pieces) != 2 || pieces[0] != "Bearer" {
+		return "", fmt.Errorf("no authorization header")
+	}
+	return pieces[1], nil
 }

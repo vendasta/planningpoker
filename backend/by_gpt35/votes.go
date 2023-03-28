@@ -83,9 +83,9 @@ func watchVotes(w http.ResponseWriter, r *http.Request) {
 
 func vote(w http.ResponseWriter, r *http.Request) {
 
-	token := r.Header.Get("token")
-	if token == "" {
-		http.Error(w, "token not found", http.StatusUnauthorized)
+	token, err := getBearerTokenFromHTTP(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 

@@ -22,7 +22,22 @@ Given the following API's your task is to build a frontend for the planning poke
 
 # Example Prompt
 
+We are building a frontend for a planning poker game. Build an angular component that can create a new session and display the session id for others to join. 
+The token returned will be used to authorize future requests for the participant. The server url to create the session is `/session/create`
 
+The api expects the following json payload:
+```json
+{ 'participant_id': 'Dale Hopkins'}
+```
+
+The api response be a json object with the following structure:
+
+```json
+{
+'session_id': '1234',
+'token': 'opaque access token for Dale'
+}
+```
 
 # Available Votes
 The following votes will be used within the planning session game. 

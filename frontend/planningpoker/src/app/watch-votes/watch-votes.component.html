@@ -1,0 +1,12 @@
+<table mat-table [dataSource]="votes">
+  <ng-container matColumnDef="participant_id">
+    <th mat-header-cell *matHeaderCellDef>Participant ID</th>
+    <td mat-cell *matCellDef="let vote">{{ vote.participant_id }}</td>
+  </ng-container>
+  <ng-container matColumnDef="vote">
+    <th mat-header-cell *matHeaderCellDef>Vote</th>
+    <td mat-cell *matCellDef="let vote">{{ vote.vote }}</td>
+  </ng-container>
+  <tr mat-header-row *matHeaderRowDef="['participant_id', 'vote']"></tr>
+  <tr mat-row *matRowDef="let vote; columns: ['participant_id', 'vote']"></tr>
+</table>

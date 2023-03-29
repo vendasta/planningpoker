@@ -1,20 +1,17 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import {BehaviorSubject, map, Observable, tap} from 'rxjs';
-
-export interface Session {
-  session_id: string;
-  token: string;
-}
+import {Injectable} from '@angular/core';
+import {HttpClient, HttpHeaders} from '@angular/common/http';
+import {BehaviorSubject, Observable, tap} from 'rxjs';
+import {Session} from "./objects";
 
 @Injectable({
   providedIn: 'root'
 })
-export class PlanningPokerService {
+export class HostService {
   private sessionData$$: BehaviorSubject<Session> = new BehaviorSubject({session_id: '', token: ''});
   private sessionData$: Observable<Session> = this.sessionData$$.asObservable();
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {
+  }
 
   createSession(participantId: string): Observable<Session> {
     const headers = new HttpHeaders({
@@ -25,7 +22,7 @@ export class PlanningPokerService {
       participant_id: participantId
     };
 
-    return this.http.post<any>('http://localhost:8080/session/create', body, { headers, withCredentials: true }).pipe(
+    return this.http.post<any>('http://localhost:8080/session/create', body, {headers, withCredentials: true}).pipe(
       tap(sessionData => {
         this.sessionData$$.next(sessionData);
       }),
@@ -42,7 +39,10 @@ export class PlanningPokerService {
       prompt: promptText
     };
 
-    return this.http.post<any>(`http://localhost:8080/session/${session.session_id}/prompt/create`, body, { headers, withCredentials: true });
+    return this.http.post<any>(`http://localhost:8080/session/${session.session_id}/prompt/create`, body, {
+      headers,
+      withCredentials: true
+    });
   }
 
   get session$(): Observable<Session> {

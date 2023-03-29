@@ -1,5 +1,5 @@
 import {Component} from '@angular/core';
-import {PlanningPokerService} from '../planning-poker.service';
+import {HostService} from '../host.service';
 import {MatDialog} from "@angular/material/dialog";
 import {InviteDialogComponent} from "./invite-dialog.component";
 import {Router} from "@angular/router";
@@ -13,16 +13,17 @@ export class CreateSessionComponent {
   participantId = '';
 
   constructor(
-    private sessionService: PlanningPokerService,
+    private sessionService: HostService,
     private router: Router,
     private dialog: MatDialog,
-  ) { }
+  ) {
+  }
 
   createSession() {
     this.sessionService.createSession(this.participantId)
       .subscribe(response => {
         const dialogRef = this.dialog.open(InviteDialogComponent, {
-          data: { sessionId: response.session_id }
+          data: {sessionId: response.session_id}
         });
 
         dialogRef.afterClosed().subscribe(result => {

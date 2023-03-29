@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 )
 
 type Session struct {
@@ -25,8 +24,8 @@ const (
 )
 
 var (
-	seededRand  = rand.New(rand.NewSource(time.Now().UnixNano()))
-	cookieStore = securecookie.New(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32))
+	seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	store      = NewInMemorySessionStore()
 )
 
 func main() {
@@ -37,7 +36,7 @@ func main() {
 	r.HandleFunc("/session/{session_id}/prompt/wait", promptWait).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/session/{session_id}/prompt/create", createPrompt).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/vote", vote).Methods(http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/watch", watchVotes).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/session/{session_id}/prompt/{prompt_id}/watch", watchVotes).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
 	r.HandleFunc("/session/{session_id}/close", closeSession).Methods(http.MethodPost, http.MethodOptions)
 
 	// Allow CORS for all routes
@@ -46,40 +45,17 @@ func main() {
 	http.ListenAndServe(":8080", r)
 }
 
-func getCookie(r *http.Request) (*http.Cookie, error) {
-	cookie, err := r.Cookie("planning_poker_session_id")
+func getSession(sessionID string) (*Session, error) {
+	s, err := store.getSession(sessionID)
 	if err != nil {
 		return nil, err
 	}
-	return cookie, nil
+
+	return s, nil
 }
 
-func getSession(r *http.Request) (Session, error) {
-	cookie, err := getCookie(r)
-	if err != nil {
-		return Session{}, err
-	}
-
-	var session Session
-	err = cookieStore.Decode("planning_poker_session_id", cookie.Value, &session)
-	if err != nil {
-		return Session{}, err
-	}
-	return session, nil
-}
-
-func setSession(w http.ResponseWriter, session Session) {
-	encoded, err := cookieStore.Encode("planning_poker_session_id", session)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	cookie := &http.Cookie{
-		Name:  "planning_poker_session_id",
-		Value: encoded,
-		Path:  "/",
-	}
-	http.SetCookie(w, cookie)
+func setSession(session *Session) error {
+	return store.setSession(session)
 }
 
 func generateRandomString(length int) string {
@@ -102,4 +78,19 @@ func getBearerTokenFromHTTP(r *http.Request) (string, error) {
 		return "", fmt.Errorf("no authorization header")
 	}
 	return pieces[1], nil
+}
+
+func handleCORS(w http.ResponseWriter, r *http.Request) bool {
+	w.Header().Add("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Add("Access-Control-Allow-Headers", "Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With,X-Grpc-Web,X-User-Agent")
+
+	if r.Method == http.MethodOptions {
+		w.Header().Add("Access-Control-Max-Age", "1728000")
+		w.Header().Add("Content-Type", "text/plain; charset=UTF-8")
+		w.Header().Add("Content-Length", "0")
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+	return false
 }

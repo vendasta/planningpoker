@@ -1,0 +1,26 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>Prompt</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <p>Prompt ID: {{ promptId }}</p>
+    <p>Prompt: {{ prompt }}</p>
+    <p>Vote:</p>
+    <mat-radio-group [(ngModel)]="vote">
+      <mat-radio-button value="1">1</mat-radio-button>
+      <mat-radio-button value="2">2</mat-radio-button>
+      <mat-radio-button value="3">3</mat-radio-button>
+      <mat-radio-button value="5">5</mat-radio-button>
+      <mat-radio-button value="8">8</mat-radio-button>
+      <mat-radio-button value="13">13</mat-radio-button>
+      <mat-radio-button value="20">20</mat-radio-button>
+      <mat-radio-button value="40">40</mat-radio-button>
+      <mat-radio-button value="100">100</mat-radio-button>
+      <mat-radio-button value="?">?</mat-radio-button>
+      <mat-radio-button value="☕️">☕️</mat-radio-button>
+    </mat-radio-group>
+  </mat-card-content>
+  <mat-card-actions>
+    <button mat-raised-button color="primary" (click)="submitVote()">Submit</button>
+  </mat-card-actions>
+</mat-card>

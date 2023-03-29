@@ -26,20 +26,18 @@ type VoteSummary struct {
 }
 
 func watchVotes(w http.ResponseWriter, r *http.Request) {
+	if handleCORS(w, r) {
+		return
+	}
+
 	// Parse session and prompt IDs from URL path
 	sessionID := mux.Vars(r)["session_id"]
 	promptID := mux.Vars(r)["prompt_id"]
 
 	// Read session ID from cookie
-	session, err := getSession(r)
+	_, err := getSession(sessionID)
 	if err != nil {
-		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
-		return
-	}
-
-	// Verify that session ID in cookie matches session ID in URL path
-	if session.ID != sessionID {
-		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
+		http.Error(w, "session not found", http.StatusBadRequest)
 		return
 	}
 
@@ -82,6 +80,9 @@ func watchVotes(w http.ResponseWriter, r *http.Request) {
 }
 
 func vote(w http.ResponseWriter, r *http.Request) {
+	if handleCORS(w, r) {
+		return
+	}
 
 	token, err := getBearerTokenFromHTTP(r)
 	if err != nil {
@@ -94,15 +95,9 @@ func vote(w http.ResponseWriter, r *http.Request) {
 	promptID := mux.Vars(r)["prompt_id"]
 
 	// Read session ID from cookie
-	session, err := getSession(r)
+	session, err := getSession(sessionID)
 	if err != nil {
-		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
-		return
-	}
-
-	// Verify that session ID in cookie matches session ID in URL path
-	if session.ID != sessionID {
-		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
+		http.Error(w, "session not found", http.StatusBadRequest)
 		return
 	}
 

@@ -33,21 +33,11 @@ func closeSession(w http.ResponseWriter, r *http.Request) {
 	// Parse session ID from URL path
 	sessionID := mux.Vars(r)["session_id"]
 
-	// Read session ID from cookie
-	session, err := getSession(r)
+	err := store.deleteSession(sessionID)
 	if err != nil {
-		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
+		http.Error(w, "session not found", http.StatusBadRequest)
 		return
 	}
-
-	// Verify that session ID in cookie matches session ID in URL path
-	if session.ID != sessionID {
-		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
-		return
-	}
-
-	cookieStore.MaxAge(-1)
-	setSession(w, session)
 
 	// Return response
 	res := struct{}{}
@@ -61,19 +51,17 @@ func closeSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func joinSession(w http.ResponseWriter, r *http.Request) {
+	if handleCORS(w, r) {
+		return
+	}
+
 	// Parse session ID from URL path
 	sessionID := mux.Vars(r)["session_id"]
 
 	// Read session ID from cookie
-	session, err := getSession(r)
+	session, err := getSession(sessionID)
 	if err != nil {
-		http.Error(w, "session ID cookie not found", http.StatusBadRequest)
-		return
-	}
-
-	// Verify that session ID in cookie matches session ID in URL path
-	if session.ID != sessionID {
-		http.Error(w, "session ID in URL path does not match session ID in cookie", http.StatusBadRequest)
+		http.Error(w, "session not found", http.StatusBadRequest)
 		return
 	}
 
@@ -96,8 +84,11 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 	// update the participants in the session
 	session.Participants = participants
 
-	// update the session in the cookie
-	setSession(w, session)
+	err = setSession(session)
+	if err != nil {
+		http.Error(w, "unable to create new session", http.StatusInternalServerError)
+		return
+	}
 
 	// Create response
 	res := JoinSessionResponse{
@@ -115,15 +106,7 @@ func joinSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func createSession(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Add("Access-Control-Allow-Credentials", "true")
-	w.Header().Add("Access-Control-Allow-Headers", "Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With,X-Grpc-Web,X-User-Agent")
-
-	if r.Method == http.MethodOptions {
-		w.Header().Add("Access-Control-Max-Age", "1728000")
-		w.Header().Add("Content-Type", "text/plain; charset=UTF-8")
-		w.Header().Add("Content-Length", "0")
-		w.WriteHeader(http.StatusNoContent)
+	if handleCORS(w, r) {
 		return
 	}
 
@@ -139,23 +122,23 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	token := generateRandomString(TokenLength)
 
 	// Get session ID from cookie or generate a new one
-	session, err := getSession(r)
-	if err != nil {
-		sessionID := generateRandomString(SessionIDLength)
-		session = Session{
-			OwnerID: token,
-			ID:      sessionID,
-			Participants: map[string]Participant{
-				req.ParticipantID: {
-					ID:    req.ParticipantID,
-					Token: token,
-				},
+	sessionID := generateRandomString(SessionIDLength)
+	session := &Session{
+		OwnerID: token,
+		ID:      sessionID,
+		Participants: map[string]Participant{
+			req.ParticipantID: {
+				ID:    req.ParticipantID,
+				Token: token,
 			},
-		}
+		},
 	}
 
-	// write the session to the cookie
-	setSession(w, session)
+	err = setSession(session)
+	if err != nil {
+		http.Error(w, "unable to create new session", http.StatusInternalServerError)
+		return
+	}
 
 	// Create response
 	res := CreateSessionResponse{

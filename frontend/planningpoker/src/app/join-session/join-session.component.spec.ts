@@ -1,18 +1,18 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {CreatePromptComponent} from './create-prompt.component';
+import {JoinSessionComponent} from './join-session.component';
 
-describe('CreatePromptComponent', () => {
-  let component: CreatePromptComponent;
-  let fixture: ComponentFixture<CreatePromptComponent>;
+describe('JoinSessionComponent', () => {
+  let component: JoinSessionComponent;
+  let fixture: ComponentFixture<JoinSessionComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [CreatePromptComponent]
+      declarations: [JoinSessionComponent]
     })
       .compileComponents();
 
-    fixture = TestBed.createComponent(CreatePromptComponent);
+    fixture = TestBed.createComponent(JoinSessionComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import {PlanningPokerService} from "../planning-poker.service";
+import {Component} from '@angular/core';
+import {HostService} from "../host.service";
 import {switchMap} from "rxjs";
 
 @Component({
@@ -10,7 +10,7 @@ import {switchMap} from "rxjs";
 export class CreatePromptComponent {
   promptText = '';
 
-  constructor(private service: PlanningPokerService) {
+  constructor(private service: HostService) {
   }
 
   createPrompt() {

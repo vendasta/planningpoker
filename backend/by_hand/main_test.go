@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func createTestSession(t *testing.T, testServer *httptest.Server) (string, string) {
@@ -73,8 +74,8 @@ func joinTestSession(t *testing.T, testServer *httptest.Server, sessionID string
 	return responseBody.Token
 }
 
-func createTestPrompt(t *testing.T, testServer *httptest.Server, sessionID, token string) string {
-	pr := PromptCreateRequest{Text: "Test Prompt?"}
+func createTestPrompt(t *testing.T, testServer *httptest.Server, sessionID, token, prompt string) string {
+	pr := PromptCreateRequest{Text: prompt}
 	buf := bytes.NewBufferString("")
 	err := json.NewEncoder(buf).Encode(pr)
 	if err != nil {
@@ -158,12 +159,42 @@ func getTestVote(t *testing.T, testServer *httptest.Server, sessionID, token, pr
 	return responseBody.Votes
 }
 
+func testWaitForPrompt(t *testing.T, testServer *httptest.Server, sessionID, token, lastPrompt string) string {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/session/%s/prompt/wait?last_prompt_id=%s", testServer.URL, sessionID, lastPrompt), nil)
+	if err != nil {
+		t.Fatalf("Error creating request: %v", err)
+	}
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("authorization", fmt.Sprintf("Bearer %s", token))
+
+	resp, err := testServer.Client().Do(req)
+	if err != nil {
+		t.Fatalf("Error sending request: %v", err)
+	}
+
+	if resp.StatusCode == http.StatusNoContent {
+		return ""
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Error sending request: %s", resp.Status)
+	}
+
+	var responseBody PromptWaitResponse
+	err = json.NewDecoder(resp.Body).Decode(&responseBody)
+	if err != nil {
+		t.Fatalf("Error decoding response: %v", err)
+	}
+
+	return responseBody.PromptID
+}
+
 func TestUpToVote(t *testing.T) {
 	initialize()
 	testServer := httptest.NewServer(CreateHandler())
 
 	sessionID, token := createTestSession(t, testServer)
-	promptID := createTestPrompt(t, testServer, sessionID, token)
+	promptID := createTestPrompt(t, testServer, sessionID, token, "Test Prompt?")
 	createTestVote(t, testServer, sessionID, token, promptID, "1")
 	votes := getTestVote(t, testServer, sessionID, token, promptID)
 
@@ -193,7 +224,7 @@ func TestTwoVotes(t *testing.T) {
 
 	sessionID1, token1 := createTestSession(t, testServer)
 	token2 := joinTestSession(t, testServer, sessionID1)
-	promptID := createTestPrompt(t, testServer, sessionID1, token1)
+	promptID := createTestPrompt(t, testServer, sessionID1, token1, "Test Prompt?")
 
 	createTestVote(t, testServer, sessionID1, token1, promptID, "1")
 	createTestVote(t, testServer, sessionID1, token2, promptID, "2")
@@ -201,5 +232,25 @@ func TestTwoVotes(t *testing.T) {
 	votes := getTestVote(t, testServer, sessionID1, token1, promptID)
 	if len(votes) != 2 {
 		t.Fatalf("Expected 2 vote, got %d", len(votes))
+	}
+}
+
+func TestWaitForPrompt(t *testing.T) {
+	promptText := "Test Prompt?"
+	initialize()
+	testServer := httptest.NewServer(CreateHandler())
+
+	sessionID, token := createTestSession(t, testServer)
+
+	var promptID string
+	go func() {
+		time.Sleep(1 * time.Second)
+		promptID = createTestPrompt(t, testServer, sessionID, token, promptText)
+	}()
+
+	newPromptID := testWaitForPrompt(t, testServer, sessionID, token, "")
+
+	if newPromptID != promptID {
+		t.Fatalf("Expected prompt ID to be %s, got %s", promptID, newPromptID)
 	}
 }

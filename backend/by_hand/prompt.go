@@ -112,13 +112,7 @@ func PromptCreateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PromptWaitHandler(w http.ResponseWriter, r *http.Request) {
-	var req PromptWaitRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		fmt.Printf("Error creating prompt: %v\n", err)
-		http.Error(w, "invalid request", http.StatusBadRequest)
-		return
-	}
+	lastPromptID := r.URL.Query().Get("last_prompt_id")
 
 	reqToken, err := GetToken(r)
 	if err != nil {
@@ -137,7 +131,7 @@ func PromptWaitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	availablePrompt := GetPromptWithLock(sessionID, req.LastPromptID)
+	availablePrompt := GetPromptWithLock(sessionID, lastPromptID)
 	if availablePrompt != nil {
 		pwr := &PromptWaitResponse{
 			PromptID: availablePrompt.ID,

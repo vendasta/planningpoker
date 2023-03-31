@@ -42,7 +42,7 @@ func main() {
 	// Allow CORS for all routes
 	r.Use(mux.CORSMethodMiddleware(r))
 
-	http.ListenAndServe(":8080", r)
+	http.ListenAndServe(":9000", r)
 }
 
 func getSession(sessionID string) (*Session, error) {

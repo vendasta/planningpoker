@@ -1,3 +1,5 @@
+Server https://adf9-67-225-123-58.ngrok.io
+
 # Planning Poker
 
 Planning Poker is a technique used in agile software development to estimate the effort required to complete a task or a project. It involves a team of people who collectively estimate the amount of work required for a given task or project.
